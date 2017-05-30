@@ -28,14 +28,16 @@ def get_predictions():
 
     # Grab a few images at a time for training and validation.
     # NB: They must be in subdirectories named based on their category
-    batches = vgg.get_batches(path+'train', batch_size=batch_size, shuffle=False)
+    batches = vgg.get_batches(path + 'train', batch_size=batch_size, shuffle=False)
     val_batches = vgg.get_batches(path+'valid', batch_size=batch_size*2, shuffle=False)
+    test_batches = vgg.get_batches(path+'test', batch_size=batch_size*2, shuffle=False)
+
     vgg.finetune(batches)
     vgg.fit(batches, val_batches, nb_epoch=1)
 
-    imgs, labels = next(batches)
+    test_imgs, labels = next(test_batches)
 
-    predictions = vgg.predict(imgs, True)
+    predictions = vgg.predict(test_imgs, True)
 
     return predictions
 
@@ -45,12 +47,13 @@ def write_csv(predictions):
         rowwriter = csv.writer(csvfile, delimiter=',')
         rowwriter.writerow(['id', 'label'])
         counter = 1
-        for img in predictions.classes:
-            is_dog = img == "Dogs"
-            is_dog_value = "1" if isDog else "0"
+        predicted_labels = predictions[2]
+        for prediction in predicted_labels:
+            is_dog = prediction == "dogs"
+            is_dog_value = "1" if is_dog else "0"
             rowwwriter.writerow([counter, is_dog_value])
             counter = counter + 1
 
 write_csv(get_predictions())
-
+print("done")
 
