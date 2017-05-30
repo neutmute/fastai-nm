@@ -20,7 +20,6 @@ def get_predictions():
 
     path = "data/cats-dogs-redux/sample/"
 
-
     # As large as you can, but no larger than 64 is recommended.
     # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
     batch_size = 32
@@ -29,10 +28,10 @@ def get_predictions():
 
     # Grab a few images at a time for training and validation.
     # NB: They must be in subdirectories named based on their category
-    batches = vgg.get_batches(path+'train', batch_size=batch_size)
-    val_batches = vgg.get_batches(path+'valid', batch_size=batch_size*2)
+    batches = vgg.get_batches(path+'train', batch_size=batch_size, shuffle=False)
+    val_batches = vgg.get_batches(path+'valid', batch_size=batch_size*2, shuffle=False)
     vgg.finetune(batches)
-    vgg.fit(batches, val_batches, nb_epoch=3)
+    vgg.fit(batches, val_batches, nb_epoch=1)
 
     imgs, labels = next(batches)
 
@@ -45,8 +44,12 @@ def write_csv(predictions):
     with open('dogs-cats-submission.csv', 'wb') as csvfile:
         rowwriter = csv.writer(csvfile, delimiter=',')
         rowwriter.writerow(['id', 'label'])
-
-        rowwwriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
+        counter = 1
+        for img in predictions.classes:
+            is_dog = img == "Dogs"
+            is_dog_value = "1" if isDog else "0"
+            rowwwriter.writerow([counter, is_dog_value])
+            counter = counter + 1
 
 write_csv(get_predictions())
 
