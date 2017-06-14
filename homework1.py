@@ -6,11 +6,14 @@ import csv
 import os
 import json
 from glob import glob
+from datetime import datetime
+from collections import namedtuple
 import numpy as np
 import utils
 import vgg16
 from vgg16 import Vgg16
-from datetime import datetime
+
+PathConfig = namedtuple("PathConfig", "root data test results train")
 
 #%%
 reload(utils)
@@ -18,14 +21,21 @@ reload(vgg16)
 np.set_printoptions(precision=4, linewidth=100)
 
 #%%
-def get_model():
+
+def get_path_config(root):
+    """Capture config that we will be reusing"""
+    config = PathConfig()
+    config.root = root
+    config.data = root + "/sample"
+    #config.data = root + "/train"
+    config.test = config.data + "/test"
+    config.train = config.data + "/train"
+    config.results = root + "/results"
+    return config
+
+def get_model(path_config):
     """Tune the model and return model"""
 
-    data_root = "data/cats-dogs-redux"
-    data_path = data_root + "/sample/"
-    test_path = data_path + "/test"
-    results_path = data_root + "/results/"
-    timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     #dataPath = dataRoot + "/train/"
 
     # As large as you can, but no larger than 64 is recommended.
@@ -36,8 +46,8 @@ def get_model():
 
     # Grab a few images at a time for training and validation.
     # NB: They must be in subdirectories named based on their category
-    train_batches = vgg.get_batches(data_path + 'train', batch_size=batch_size, shuffle=False)
-    val_batches = vgg.get_batches(data_path + 'valid', batch_size=batch_size*2, shuffle=False)
+    train_batches = vgg.get_batches(path_config.train, batch_size=batch_size, shuffle=False)
+    val_batches = vgg.get_batches(path_config.valid, batch_size=batch_size*2, shuffle=False)
 
     #print("Learning rate = {lr}" % {lr:vgg.model.optimizer.lr})
 
@@ -46,7 +56,8 @@ def get_model():
     print("Fitting")
     vgg.fit(train_batches, val_batches, nb_epoch=1)
 
-    weights_filename = results_path + "weights-" + timestamp_as_string + ".h5"
+    timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    weights_filename = path_config.results + "/" + timestamp_as_string + ".h5"
     print("Saving weights to {weights_file}" % {weights_filename})
     vgg.model.save_weights(weights_filename)
 
@@ -72,8 +83,10 @@ def write_csv(predictions):
             counter = counter + 1
 
 #%%
+path_config = get_path_config("data/cats-dogs-redux")
+
 print("Getting model")
-model = get_model()
+model = get_model(path_config)
 #%%
 write_csv(predictions)
 print("Done")
