@@ -22,11 +22,14 @@ import zipfile
 def train_valid_folders(path,percent=0.8,flag=0):
     train_path = os.path.join(path,'train')
     valid_path = os.path.join(path,'valid')
+    result_path = os.path.join(path,'results')
     
     if not os.path.exists(train_path):
         os.mkdir(train_path)
     if not os.path.exists(valid_path):
         os.mkdir(valid_path)    
+    if not os.path.exists(result_path):
+        os.mkdir(result_path)
     
     if flag:
         all_train = glob(os.path.join(path,'*.*'))

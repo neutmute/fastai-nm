@@ -10,18 +10,23 @@ import numpy as np
 import utils
 import vgg16
 from vgg16 import Vgg16
+from datetime import datetime
 
+#%%
 reload(utils)
 reload(vgg16)
-
 np.set_printoptions(precision=4, linewidth=100)
 
 #%%
-def get_predictions():
-    """Tune the model and return predictions"""
+def get_model():
+    """Tune the model and return model"""
 
-    #path = "data/cats-dogs-redux/train/"
-    path = "data/cats-dogs-redux/sample/"
+    data_root = "data/cats-dogs-redux"
+    data_path = data_root + "/sample/"
+    test_path = data_path + "/test"
+    results_path = data_root + "/results/"
+    timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    #dataPath = dataRoot + "/train/"
 
     # As large as you can, but no larger than 64 is recommended.
     # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
@@ -31,8 +36,8 @@ def get_predictions():
 
     # Grab a few images at a time for training and validation.
     # NB: They must be in subdirectories named based on their category
-    train_batches = vgg.get_batches(path + 'train', batch_size=batch_size, shuffle=False)
-    val_batches = vgg.get_batches(path + 'valid', batch_size=batch_size*2, shuffle=False)
+    train_batches = vgg.get_batches(data_path + 'train', batch_size=batch_size, shuffle=False)
+    val_batches = vgg.get_batches(data_path + 'valid', batch_size=batch_size*2, shuffle=False)
 
     #print("Learning rate = {lr}" % {lr:vgg.model.optimizer.lr})
 
@@ -41,11 +46,17 @@ def get_predictions():
     print("Fitting")
     vgg.fit(train_batches, val_batches, nb_epoch=1)
 
+    weights_filename = results_path + "weights-" + timestamp_as_string + ".h5"
+    print("Saving weights to {weights_file}" % {weights_filename})
+    vgg.model.save_weights(weights_filename)
+
     #test_imgs, labels = next(test_batches)
+    #predictions = vgg.predict(test_imgs, True)
 
-    predictions = vgg.predict(test_imgs, True)
+    return vgg
 
-    return predictions
+def test_model(model):
+    print("noop")
 
 def write_csv(predictions):
     """Given predictions, write out the kaggle csv"""
@@ -61,8 +72,8 @@ def write_csv(predictions):
             counter = counter + 1
 
 #%%
-print("Getting predictions")
-predictions = get_predictions()
+print("Getting model")
+model = get_model()
 #%%
 write_csv(predictions)
 print("Done")
