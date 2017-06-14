@@ -1,5 +1,6 @@
 """Fast AI Lesson 1 Homework"""
 
+#%%
 from __future__ import division, print_function
 import csv
 import os
@@ -15,9 +16,11 @@ reload(vgg16)
 
 np.set_printoptions(precision=4, linewidth=100)
 
+#%%
 def get_predictions():
     """Tune the model and return predictions"""
 
+    #path = "data/cats-dogs-redux/train/"
     path = "data/cats-dogs-redux/sample/"
 
     # As large as you can, but no larger than 64 is recommended.
@@ -28,14 +31,17 @@ def get_predictions():
 
     # Grab a few images at a time for training and validation.
     # NB: They must be in subdirectories named based on their category
-    batches = vgg.get_batches(path + 'train', batch_size=batch_size, shuffle=False)
-    val_batches = vgg.get_batches(path+'valid', batch_size=batch_size*2, shuffle=False)
-    test_batches = vgg.get_batches(path+'test', batch_size=batch_size*2, shuffle=False)
+    train_batches = vgg.get_batches(path + 'train', batch_size=batch_size, shuffle=False)
+    val_batches = vgg.get_batches(path + 'valid', batch_size=batch_size*2, shuffle=False)
 
-    vgg.finetune(batches)
-    vgg.fit(batches, val_batches, nb_epoch=1)
+    #print("Learning rate = {lr}" % {lr:vgg.model.optimizer.lr})
 
-    test_imgs, labels = next(test_batches)
+    vgg.finetune(train_batches)
+
+    print("Fitting")
+    vgg.fit(train_batches, val_batches, nb_epoch=1)
+
+    #test_imgs, labels = next(test_batches)
 
     predictions = vgg.predict(test_imgs, True)
 
@@ -54,6 +60,10 @@ def write_csv(predictions):
             rowwwriter.writerow([counter, is_dog_value])
             counter = counter + 1
 
-write_csv(get_predictions())
-print("done")
+#%%
+print("Getting predictions")
+predictions = get_predictions()
+#%%
+write_csv(predictions)
+print("Done")
 

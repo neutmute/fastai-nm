@@ -1,0 +1,2 @@
+[Error 2] The system cannot find the file specified: u'D:\\code\\fast-ai-courses\\deeplearning1\\nbs/data/redux'
+D:\code\fast-ai-courses\deeplearning1\nbs
