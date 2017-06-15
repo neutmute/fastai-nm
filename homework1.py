@@ -14,13 +14,6 @@ import utils
 import vgg16
 from vgg16 import Vgg16
 
-#PathConfig = namedtuple("PathConfig", "root data test results train")
-
-#%%
-reload(utils)
-reload(vgg16)
-np.set_printoptions(precision=4, linewidth=100)
-
 #%%
 
 class PathConfig2(object):
@@ -38,17 +31,11 @@ class PathConfig2(object):
         weight_filter = os.path.join(self.results, "*.h5")
         weight_files = glob.iglob(weight_filter)
 
-        latest_weight = max(weight_files, key=os.path.getctime)
-        
-        if len(latest_weight) == 0:
+        try:
+            latest_weight = max(weight_files, key=os.path.getctime)
+            return latest_weight
+        except ValueError:      # hack to handle empty results folder
             return ''
-
-        return latest_weight
-
-def get_path_config(root):
-    """Capture config that we will be reusing"""
-    config2 = PathConfig2(root, os.path.sep + "sample")
-    return config2
 
 def get_vgg(path_config, batch_size):
     """Tune the model and return model"""
@@ -69,14 +56,17 @@ def get_vgg(path_config, batch_size):
         #print("Learning rate = {lr}".format(lr=vgg.model.optimizer.lr))
 
         vgg.finetune(train_batches)
-
-        print("Fitting")
-        vgg.fit(train_batches, val_batches, nb_epoch=1)
-
         timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-        weights_filename = path_config.results + "/" + timestamp_as_string + ".h5"
-        print("Saving weights to {weights_file}".format(weights_file=weights_filename))
-        vgg.model.save_weights(weights_filename)
+
+        epoch_count = 10
+        for epoch in range(epoch_count):
+            print("Fitting epoch {c}/{of}".format(c=epoch, of=epoch_count))
+            vgg.fit(train_batches, val_batches, nb_epoch=1)
+
+            weights_filename = "{ts}_{epoch}.h5".format(ts=timestamp_as_string, epoch=epoch)
+            weights_file_path = os.path.join(path_config.results, weights_filename)
+            print("Saving weights to {weights_file}".format(weights_file=weights_file_path))
+            vgg.model.save_weights(weights_file_path)
 
     #test_imgs, labels = next(test_batches)
     #predictions = vgg.predict(test_imgs, True)
@@ -98,8 +88,6 @@ def write_csv(predictions):
 
 
 
-
-#%%
 def run():
     """Execute!"""
 
@@ -108,17 +96,23 @@ def run():
     batch_size = 32
 
     root_path = "data\\cats-dogs-redux"
-    path_config = get_path_config(root_path)
+    relative_data = os.path.sep + "sample"
+    relative_data = os.path.sep + "full"
+    path_config = PathConfig2(root_path, relative_data)
 
-    print("Getting model")
+    print("Getting model for {p}".format(p=root_path))
     vgg = get_vgg(path_config, batch_size)
 
     test_files = os.walk(path_config.test).next()
     print("Testing {p} which has {c} files".format(p=path_config.test, c=len(test_files[2])))
     test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
 
-    predictions[:5]
+    print(predictions[:50])
 
+#%%
+reload(utils)
+reload(vgg16)
+np.set_printoptions(precision=4, linewidth=100)
 run()
 print("Done")
 
