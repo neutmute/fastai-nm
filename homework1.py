@@ -38,23 +38,20 @@ class PathConfig2(object):
         weight_filter = os.path.join(self.results, "*.h5")
         weight_files = glob.iglob(weight_filter)
 
-        try:
-            latest_weight = max(weight_files, key=os.path.getctime)
-            return latest_weight
-        except ValueError:      # hack to handle empty results folder
+        latest_weight = max(weight_files, key=os.path.getctime)
+        
+        if len(latest_weight) == 0:
             return ''
+
+        return latest_weight
 
 def get_path_config(root):
     """Capture config that we will be reusing"""
-    config2 = PathConfig2(root, "/sample")
+    config2 = PathConfig2(root, os.path.sep + "sample")
     return config2
 
-def get_model(path_config):
+def get_vgg(path_config, batch_size):
     """Tune the model and return model"""
-
-    # As large as you can, but no larger than 64 is recommended.
-    # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
-    batch_size = 32
 
     vgg = Vgg16()
 
@@ -86,9 +83,6 @@ def get_model(path_config):
 
     return vgg
 
-def test_model(model):
-    print("noop")
-
 def write_csv(predictions):
     """Given predictions, write out the kaggle csv"""
     with open('dogs-cats-submission.csv', 'wb') as csvfile:
@@ -102,12 +96,31 @@ def write_csv(predictions):
             rowwwriter.writerow([counter, is_dog_value])
             counter = counter + 1
 
-#%%
-root_path = "data\\cats-dogs-redux"
-path_config = get_path_config(root_path)
 
-print("Getting model")
-model = get_model(path_config)
+
+
+#%%
+def run():
+    """Execute!"""
+
+    # As large as you can, but no larger than 64 is recommended.
+    # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
+    batch_size = 32
+
+    root_path = "data\\cats-dogs-redux"
+    path_config = get_path_config(root_path)
+
+    print("Getting model")
+    vgg = get_vgg(path_config, batch_size)
+
+    test_files = os.walk(path_config.test).next()
+    print("Testing {p} which has {c} files".format(p=path_config.test, c=len(test_files[2])))
+    test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
+
+    predictions[:5]
+
+run()
+print("Done")
 
 #%%
 write_csv(predictions)
