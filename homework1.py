@@ -36,8 +36,13 @@ class PathConfig2(object):
     def get_latest_weight(self):
         """Find the most recently saved weights file - if it exists"""
         weight_filter = os.path.join(self.results, "*.h5")
-        latest_weight = max(glob.iglob(weight_filter), key=os.path.getctime)
-        return latest_weight
+        weight_files = glob.iglob(weight_filter)
+
+        try:
+            latest_weight = max(weight_files, key=os.path.getctime)
+            return latest_weight
+        except ValueError:      # hack to handle empty results folder
+            return ''
 
 def get_path_config(root):
     """Capture config that we will be reusing"""
@@ -64,7 +69,7 @@ def get_model(path_config):
         train_batches = vgg.get_batches(path_config.train, batch_size=batch_size, shuffle=False)
         val_batches = vgg.get_batches(path_config.valid, batch_size=batch_size*2, shuffle=False)
 
-        print("Learning rate = {lr}".format(lr=vgg.model.optimizer.lr))
+        #print("Learning rate = {lr}".format(lr=vgg.model.optimizer.lr))
 
         vgg.finetune(train_batches)
 
