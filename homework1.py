@@ -13,9 +13,9 @@ import numpy as np
 import utils
 import vgg16
 from vgg16 import Vgg16
+from PIL import Image
 
 #%%
-
 class PathConfig2(object):
     """Container for path config that we will be reusing"""
     def __init__(self, root, relative_data):
@@ -40,6 +40,8 @@ class PathConfig2(object):
 def get_vgg(path_config, batch_size):
     """Tune the model and return model"""
 
+    print("Getting model for {p}".format(p=path_config.root))
+
     vgg = Vgg16()
 
     existing_weight_file = path_config.get_latest_weight()
@@ -59,17 +61,17 @@ def get_vgg(path_config, batch_size):
         timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
 
         epoch_count = 10
+        last_history = None
         for epoch in range(epoch_count):
             print("Fitting epoch {c}/{of}".format(c=epoch, of=epoch_count))
-            vgg.fit(train_batches, val_batches, nb_epoch=1)
+            last_history = vgg.fit(train_batches, val_batches, nb_epoch=1)
 
             weights_filename = "{ts}_{epoch}.h5".format(ts=timestamp_as_string, epoch=epoch)
             weights_file_path = os.path.join(path_config.results, weights_filename)
             print("Saving weights to {weights_file}".format(weights_file=weights_file_path))
             vgg.model.save_weights(weights_file_path)
 
-    #test_imgs, labels = next(test_batches)
-    #predictions = vgg.predict(test_imgs, True)
+        print(last_history.history)
 
     return vgg
 
@@ -86,35 +88,54 @@ def write_csv(predictions):
             rowwwriter.writerow([counter, is_dog_value])
             counter = counter + 1
 
-
-
-def run():
-    """Execute!"""
-
-    # As large as you can, but no larger than 64 is recommended.
-    # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
-    batch_size = 32
-
+def get_config():
+    """Load paths config"""
     root_path = "data\\cats-dogs-redux"
     relative_data = os.path.sep + "sample"
-    relative_data = os.path.sep + "full"
+    #relative_data = os.path.sep + "full"
     path_config = PathConfig2(root_path, relative_data)
+    return path_config
 
-    print("Getting model for {p}".format(p=root_path))
-    vgg = get_vgg(path_config, batch_size)
+def get_predictions():
+    """Execute!"""
 
-    test_files = os.walk(path_config.test).next()
-    print("Testing {p} which has {c} files".format(p=path_config.test, c=len(test_files[2])))
+    test_file_count = sum([len(files) for r, d, files in os.walk(path_config.test)])
+    print("Testing '{p}' which has {c} files".format(p=path_config.test, c=test_file_count))
     test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
 
-    print(predictions[:50])
+    return test_batches, predictions
+
+def debug_predictions(test_batches, predictions, config):
+    """Diagnostic tools"""
+    print(predictions[:5])
+
+    filenames = test_batches.filenames
+    print(filenames[:5])
+
+    image_path = os.path.join(config.test, filenames[2])
+    print("Opening " + image_path)
+    Image.open(image_path)
+
+
 
 #%%
+# pylint: disable=C0103
+
+# As large as you can, but no larger than 64 is recommended.
+# If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
+batch_size = 32
+
 reload(utils)
 reload(vgg16)
 np.set_printoptions(precision=4, linewidth=100)
-run()
-print("Done")
+
+path_config = get_config()
+vgg = get_vgg(path_config, batch_size)
+batches, predictions = get_predictions()
+
+
+#%%
+debug_predictions(batches, predictions, path_config)
 
 #%%
 write_csv(predictions)
