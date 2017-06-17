@@ -40,7 +40,7 @@ class PathConfig2(object):
 def get_vgg(path_config, batch_size):
     """Tune the model and return model"""
 
-    print("Getting model for {p}".format(p=path_config.root))
+    print("Getting model for {p}".format(p=path_config.data))
 
     vgg = Vgg16()
 
@@ -58,7 +58,7 @@ def get_vgg(path_config, batch_size):
         vgg.finetune(train_batches)
 
         vgg.model.optimizer.lr = 0.01
-        print("Learning Rate={lr}".format(lr=vgg.model.optimizer.lr))
+        print("Learning Rate={lr}, Batch size={bs}".format(lr=vgg.model.optimizer.lr, bs=batch_size))
 
         timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
 
@@ -134,7 +134,7 @@ reload(vgg16)
 np.set_printoptions(precision=4, linewidth=100)
 
 relative_data_path = "sample"
-#relative_data_path = "full"
+relative_data_path = "full"
 path_config = get_config("data\\cats-dogs-redux", relative_data_path)
 vgg = get_vgg(path_config, batch_size)
 batches, predictions = get_predictions()
