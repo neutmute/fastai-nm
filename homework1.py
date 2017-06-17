@@ -5,7 +5,6 @@ from __future__ import division, print_function
 import csv
 import os
 import json
-#from glob import glob
 import glob
 from datetime import datetime
 from collections import namedtuple
@@ -55,23 +54,26 @@ def get_vgg(path_config, batch_size):
         train_batches = vgg.get_batches(path_config.train, batch_size=batch_size, shuffle=False)
         val_batches = vgg.get_batches(path_config.valid, batch_size=batch_size*2, shuffle=False)
 
-        #print("Learning rate = {lr}".format(lr=vgg.model.optimizer.lr))
-
         vgg.finetune(train_batches)
+
+        #vgg.model.optimizer.lr = 0.01
+        print("Learning Rate={lr}".format(lr=vgg.model.optimizer.lr))
+
         timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
 
         epoch_count = 10
-        last_history = None
+        epoch_history = []
         for epoch in range(epoch_count):
             print("Fitting epoch {c}/{of}".format(c=epoch, of=epoch_count))
-            last_history = vgg.fit(train_batches, val_batches, nb_epoch=1)
+            history = vgg.fit(train_batches, val_batches, nb_epoch=1)
 
             weights_filename = "{ts}_{epoch}.h5".format(ts=timestamp_as_string, epoch=epoch)
             weights_file_path = os.path.join(path_config.results, weights_filename)
             print("Saving weights to {weights_file}".format(weights_file=weights_file_path))
             vgg.model.save_weights(weights_file_path)
+            epoch_history.append(history.history)
 
-        print(last_history.history)
+        print(epoch_history)
 
     return vgg
 
@@ -88,11 +90,10 @@ def write_csv(predictions):
             rowwwriter.writerow([counter, is_dog_value])
             counter = counter + 1
 
-def get_config():
+def get_config(root, relative):
     """Load paths config"""
-    root_path = "data\\cats-dogs-redux"
-    relative_data = os.path.sep + "sample"
-    #relative_data = os.path.sep + "full"
+    root_path = root
+    relative_data = os.path.sep + relative
     path_config = PathConfig2(root_path, relative_data)
     return path_config
 
@@ -123,13 +124,15 @@ def debug_predictions(test_batches, predictions, config):
 
 # As large as you can, but no larger than 64 is recommended.
 # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
-batch_size = 32
+batch_size = 40
 
 reload(utils)
 reload(vgg16)
 np.set_printoptions(precision=4, linewidth=100)
 
-path_config = get_config()
+relative_data_path = "sample"
+#relative_data_path = "full"
+path_config = get_config("data\\cats-dogs-redux", relative_data_path)
 vgg = get_vgg(path_config, batch_size)
 batches, predictions = get_predictions()
 
