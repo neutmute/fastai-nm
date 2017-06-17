@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import namedtuple
 from matplotlib.pyplot import imshow
 import numpy as np
-import utils
+from utils import *
 import vgg16
 from vgg16 import Vgg16
 from PIL import Image
@@ -107,41 +107,95 @@ def get_predictions():
 
     return test_batches, predictions
 
-def debug_predictions(test_batches, predictions, config):
-    """Diagnostic tools"""
-    print(predictions[:5])
 
-    filenames = test_batches.filenames
-    print(filenames[:5])
-
-    image_path = os.path.join(config.test, filenames[2])
-    print("Opening " + image_path)
-    i = Image.open(image_path)
-    imshow(np.asarray(i))
     
+#%%
+#### Initialise
+%matplotlib inline
+
+relative_data_path = "sample"
+relative_data_path = "full"
+path_config = get_config("data\\cats-dogs-redux", relative_data_path)
+predictions_array_path = os.path.join(path_config.results, "predictions.array")
+filenames_array_path = os.path.join(path_config.results, "filenames.array")
+expected_labels_array_path = os.path.join(path_config.results, "expected_labels.array")
 
 #%%
+#### PREDIT SECTION
 # pylint: disable=C0103
 
 # As large as you can, but no larger than 64 is recommended.
 # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
 batch_size = 50
 
-%matplotlib inline
-
 reload(utils)
 reload(vgg16)
 np.set_printoptions(precision=4, linewidth=100)
 
-relative_data_path = "sample"
-relative_data_path = "full"
-path_config = get_config("data\\cats-dogs-redux", relative_data_path)
 vgg = get_vgg(path_config, batch_size)
+
 batches, predictions = get_predictions()
 
+save_array(predictions_array_path, predictions)
+save_array(filenames_array_path, batches.filenames)
+save_array(expected_labels_array_path, batches.classes)
 
 #%%
-debug_predictions(batches, predictions, path_config)
+#### DEBUG SECTION
+def plot_indexes(filename_array, indexes, titles=None):
+    plots([image.load_img(os.path.join(path_config.test, filename_array[i])) for i in indexes], titles=titles)
+ 
+def debug_predictions(filenames, predictions, config, expected_labels):
+    """Diagnostic tools"""
+    our_predictions = predictions[:,0]
+    our_labels = np.round(1-our_predictions)
+    
+    print(predictions[:5])
+    print(our_predictions)
+    print(our_labels)
+    
+    print(filenames[:5])
+
+    inspect_count = 4
+
+    # Correct labels
+    interesting = np.where(our_labels==expected_labels)[0]
+    print("Found %d correct labels" % len(interesting))
+    interesting_indexes = permutation(interesting)[:inspect_count]
+    plot_indexes(filenames, interesting_indexes, our_predictions[interesting_indexes])
+
+    # Incorrect labels
+    interesting = np.where(our_labels!=expected_labels)[0]
+    print("Found %d *incorrect* labels" % len(interesting))
+    interesting_indexes = permutation(interesting)[:inspect_count]
+    plot_indexes(filenames, interesting_indexes, our_predictions[interesting_indexes])
+
+    # The images we most confident were class1, and are actually class1The images we most confident were class1, and are actually class1
+    correct_class_n = np.where((our_labels==0) & (our_labels==expected_labels))[0]
+    print("Found %d confident correct class1 labels" % len(correct_class_n))
+    most_correct_class_n = np.argsort(our_predictions[correct_class_n])[::-1][:inspect_count]
+    plot_indexes(correct_class_n[most_correct_class_n], our_predictions[correct_class_n][most_correct_class_n])
+
+    # The images we were most confident were class N, but are actually class M
+    incorrect_class_n = np.where((our_labels==0) & (our_labels!=expected_labels))[0]
+    print("Found %d incorrect class " % len(incorrect_class_n))
+    if len(incorrect_class_n):
+        most_incorrect_class_n = np.argsort(our_predictions[incorrect_class_n])[::-1][:inspect_count]
+        plot_indexes(incorrect_class_n[most_incorrect_class_n], our_predictions[incorrect_class_n][most_incorrect_class_n])
+#
+
+   # image_path = os.path.join(config.test, filenames[0])
+   # print("Opening " + image_path)
+   # i = Image.open(image_path)
+   # k = imshow(np.asarray(i))
+   # k.title("Ff")
+
+predictions = load_array(predictions_array_path)
+filenames = load_array(filenames_array_path)
+expected_labels = load_array(expected_labels_array_path)
+print(batches.classes)
+
+debug_predictions(filenames, predictions, path_config, expected_labels)
 
 #%%
 write_csv(predictions)
