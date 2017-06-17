@@ -8,6 +8,7 @@ import json
 import glob
 from datetime import datetime
 from collections import namedtuple
+from matplotlib.pyplot import imshow
 import numpy as np
 import utils
 import vgg16
@@ -51,12 +52,12 @@ def get_vgg(path_config, batch_size):
     else:
         # Grab a few images at a time for training and validation.
         # NB: They must be in subdirectories named based on their category
-        train_batches = vgg.get_batches(path_config.train, batch_size=batch_size, shuffle=False)
-        val_batches = vgg.get_batches(path_config.valid, batch_size=batch_size*2, shuffle=False)
+        train_batches = vgg.get_batches(path_config.train, batch_size=batch_size)
+        val_batches = vgg.get_batches(path_config.valid, batch_size=batch_size*2)
 
         vgg.finetune(train_batches)
 
-        #vgg.model.optimizer.lr = 0.01
+        vgg.model.optimizer.lr = 0.01
         print("Learning Rate={lr}".format(lr=vgg.model.optimizer.lr))
 
         timestamp_as_string = datetime.now().strftime("%Y-%m-%d-%H%M%S")
@@ -67,9 +68,9 @@ def get_vgg(path_config, batch_size):
             print("Fitting epoch {c}/{of}".format(c=epoch, of=epoch_count))
             history = vgg.fit(train_batches, val_batches, nb_epoch=1)
 
-            weights_filename = "{ts}_{epoch}.h5".format(ts=timestamp_as_string, epoch=epoch)
+            weights_filename = "{ts}_fit_{epoch}.h5".format(ts=timestamp_as_string, epoch=epoch)
             weights_file_path = os.path.join(path_config.results, weights_filename)
-            print("Saving weights to {weights_file}".format(weights_file=weights_file_path))
+            #print("Saving weights to {weights_file}".format(weights_file=weights_file_path))
             vgg.model.save_weights(weights_file_path)
             epoch_history.append(history.history)
 
@@ -115,16 +116,18 @@ def debug_predictions(test_batches, predictions, config):
 
     image_path = os.path.join(config.test, filenames[2])
     print("Opening " + image_path)
-    Image.open(image_path)
-
-
+    i = Image.open(image_path)
+    imshow(np.asarray(i))
+    
 
 #%%
 # pylint: disable=C0103
 
 # As large as you can, but no larger than 64 is recommended.
 # If you have an older or cheaper GPU, you'll run out of memory, so will have to decrease this.
-batch_size = 40
+batch_size = 50
+
+%matplotlib inline
 
 reload(utils)
 reload(vgg16)
