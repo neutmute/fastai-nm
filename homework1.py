@@ -5,12 +5,13 @@ from __future__ import division, print_function
 import csv
 import os
 import json
-import glob
 from datetime import datetime
 from collections import namedtuple
 from matplotlib.pyplot import imshow
 import numpy as np
-import utils
+import utils            # don't clean up
+from utils import *     # both required
+import glob
 import vgg16
 from vgg16 import Vgg16
 from PIL import Image
@@ -99,14 +100,13 @@ def get_config(root, relative):
     return path_config
 
 def get_predictions():
-    """Execute!"""
+    """Execute our predictions"""
 
     test_file_count = sum([len(files) for r, d, files in os.walk(path_config.test)])
-    print("Testing '{p}' which has {c} files".format(p=path_config.test, c=test_file_count))
+    print("Predicting (test) '{p}' which has {c} files. This may take some time...".format(p=path_config.test, c=test_file_count))
     test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
 
     return test_batches, predictions
-
 
     
 #%%
@@ -114,7 +114,7 @@ def get_predictions():
 %matplotlib inline
 
 relative_data_path = "sample"
-relative_data_path = "full"
+#relative_data_path = "full"
 path_config = get_config("data\\cats-dogs-redux", relative_data_path)
 predictions_array_path = os.path.join(path_config.results, "predictions.array")
 filenames_array_path = os.path.join(path_config.results, "filenames.array")
