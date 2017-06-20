@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import namedtuple
 from matplotlib.pyplot import imshow
 import numpy as np
-from utils import *
+import utils
 import vgg16
 from vgg16 import Vgg16
 from PIL import Image
@@ -29,7 +29,7 @@ class PathConfig2(object):
     def get_latest_weight(self):
         """Find the most recently saved weights file - if it exists"""
         weight_filter = os.path.join(self.results, "*.h5")
-        weight_files = glob.iglob(weight_filter)
+        weight_files = glob.glob(weight_filter)
 
         try:
             latest_weight = max(weight_files, key=os.path.getctime)
@@ -157,6 +157,8 @@ def debug_predictions(filenames, predictions, config, expected_labels):
     print(filenames[:5])
 
     inspect_count = 4
+
+    plot_confusion_matrix(cm, val_batches.class_indices)
 
     # Correct labels
     interesting = np.where(our_labels==expected_labels)[0]
