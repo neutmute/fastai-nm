@@ -75,6 +75,7 @@ def get_vgg(path_config, batch_size):
             vgg.model.save_weights(weights_file_path)
             epoch_history.append(history.history)
 
+            
         print(epoch_history)
 
     return vgg
@@ -105,7 +106,7 @@ def get_predictions():
     test_file_count = sum([len(files) for r, d, files in os.walk(path_config.test)])
     print("Predicting (test) '{p}' which has {c} files. This may take some time...".format(p=path_config.test, c=test_file_count))
     test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
-
+    print("...done")
     return test_batches, predictions
 
     
@@ -147,18 +148,31 @@ def plot_indexes(filename_array, indexes, titles=None):
  
 def debug_predictions(filenames, predictions, config, expected_labels):
     """Diagnostic tools"""
-    our_predictions = predictions[:,0]
-    our_labels = np.round(1-our_predictions)
+
+    cat_predictions = predictions[:,0]
+
+    # if we predict cat, then 1-1 = 0 (cat label)
+    # if we predict dog, then 1-0 = 1 (dog label)
+    our_labels = np.round(1-cat_predictions)
     
+    print("predictions")
     print(predictions[:5])
-    print(our_predictions)
+    
+    print("cat predictions")
+    print(cat_predictions)
+
+    print("expected_labels")
     print(our_labels)
     
+    print("our_labels")
+    print(our_labels)
+        
+    print("filenames")
     print(filenames[:5])
 
     inspect_count = 4
 
-    plot_confusion_matrix(cm, val_batches.class_indices)
+    #plot_confusion_matrix(cm, val_batches.class_indices)
 
     # Correct labels
     interesting = np.where(our_labels==expected_labels)[0]
@@ -202,4 +216,8 @@ debug_predictions(filenames, predictions, path_config, expected_labels)
 #%%
 write_csv(predictions)
 print("Done")
+
+#%%
+m = np.fromfunction(lambda i, j: (i +1)* 10 + j + 1, (9, 4), dtype=int)
+m[:,3]
 
