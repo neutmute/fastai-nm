@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import csv
 import os
 import json
+import re
 from datetime import datetime
 from collections import namedtuple
 from matplotlib.pyplot import imshow
@@ -80,18 +81,18 @@ def get_vgg(path_config, batch_size):
 
     return vgg
 
-def write_csv(predictions):
-    """Given predictions, write out the kaggle csv"""
-    with open('dogs-cats-submission.csv', 'wb') as csvfile:
-        rowwriter = csv.writer(csvfile, delimiter=',')
-        rowwriter.writerow(['id', 'label'])
-        counter = 1
-        predicted_labels = predictions[2]
-        for prediction in predicted_labels:
-            is_dog = prediction == "dogs"
-            is_dog_value = "1" if is_dog else "0"
-            rowwwriter.writerow([counter, is_dog_value])
-            counter = counter + 1
+#def write_csv(predictions):
+#    """Given predictions, write out the kaggle csv"""
+#    with open('dogs-cats-submission.csv', 'wb') as csvfile:
+#        rowwriter = csv.writer(csvfile, delimiter=',')
+#        rowwriter.writerow(['id', 'label'])
+#        counter = 1
+#        predicted_labels = predictions[2]
+#        for prediction in predicted_labels:
+#            is_dog = prediction == "dogs"
+#            is_dog_value = "1" if is_dog else "0"
+#            rowwwriter.writerow([counter, is_dog_value])
+#            counter = counter + 1
 
 def get_config(root, relative):
     """Load paths config"""
@@ -230,11 +231,20 @@ class_indicies = load_array(class_indicies_array_path)
 debug_predictions(prediction_root, filenames, expected_labels, class_indicies, predictions, path_config)
 
 #%%
-write_csv(predictions)
-print("Done")
+# Lets write some predictions
+predictions = load_array(predictions_array_path)
+filenames = load_array(filenames_array_path)
 
-#%%
-#slice demo
-m = np.fromfunction(lambda i, j: (i +1)* 10 + j + 1, (9, 4), dtype=int)
-m[:,3]
+is_dog = predictions[:,1]   # take the dog predictions column vector
+is_dog = is_dog.clip(min = 0.02, max=0.98) #clip for log loss protection
 
+getFileId = lambda f: int(re.search("(\d+)", f).group(0))
+file_ids = np.array([getFileId(f) for f in filenames])
+
+
+kaggle_array = np.stack([file_ids,is_dog], axis=1)
+print(kaggle_array)
+submission_filename = os.path.join(path_config.results, 'kaggle-submission.csv')
+np.savetxt(submission_filename, kaggle_array, fmt='%d,%.5f', header='id,label', comments='')
+
+print("Submission file written to " + submission_filename)
