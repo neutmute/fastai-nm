@@ -100,14 +100,14 @@ def get_config(root, relative):
     path_config = PathConfig2(root_path, relative_data)
     return path_config
 
-def get_predictions():
+def get_predictions(path):
     """Execute our predictions"""
 
-    test_file_count = sum([len(files) for r, d, files in os.walk(path_config.test)])
-    print("Predicting (test) '{p}' which has {c} files. This may take some time...".format(p=path_config.test, c=test_file_count))
-    test_batches, predictions = vgg.test(path_config.test, batch_size=batch_size*2)
+    file_count = sum([len(files) for r, d, files in os.walk(path)])
+    print("Predicting (vgg.test) '{p}' which has {c} files. This may take some time...".format(p=path, c=file_count))
+    batches, predictions = vgg.test(path, batch_size=batch_size*2)
     print("...done")
-    return test_batches, predictions
+    return batches, predictions
 
     
 #%%
@@ -121,6 +121,8 @@ predictions_array_path = os.path.join(path_config.results, "predictions.array")
 filenames_array_path = os.path.join(path_config.results, "batches.filenames.array")
 expected_labels_array_path = os.path.join(path_config.results, "batches.expected_labels.array")
 class_indicies_array_path = os.path.join(path_config.results, "batches.class_indicies.array")
+
+prediction_root = path_config.valid
 
 #%%
 #### PREDIT SECTION
@@ -136,7 +138,7 @@ np.set_printoptions(precision=4, linewidth=100)
 
 vgg = get_vgg(path_config, batch_size)
 
-batches, predictions = get_predictions()
+batches, predictions = get_predictions(prediction_root)
 
 save_array(predictions_array_path, predictions)
 save_array(filenames_array_path, batches.filenames)
@@ -146,10 +148,10 @@ save_array(class_indicies_array_path, batches.class_indices)
 
 #%%
 #### DEBUG SECTION
-def plot_indexes(filename_array, indexes, titles=None):
-    plots([image.load_img(os.path.join(path_config.test, filename_array[i])) for i in indexes], titles=titles)
+def plot_indexes(folder_root, filename_array, indexes, titles=None):
+    plots([image.load_img(os.path.join(folder_root, filename_array[i])) for i in indexes], titles=titles)
  
-def debug_predictions(filenames, expected_labels, class_indicies, predictions, config):
+def debug_predictions(filename_root, filenames, expected_labels, class_indicies, predictions, config):
     """Diagnostic tools"""
 
     cat_predictions = predictions[:,0]
@@ -175,7 +177,6 @@ def debug_predictions(filenames, expected_labels, class_indicies, predictions, c
 
     inspect_count = 4
 
-
     cm = confusion_matrix(expected_labels, our_labels)
     plot_confusion_matrix(cm, class_indicies)
 
@@ -184,32 +185,35 @@ def debug_predictions(filenames, expected_labels, class_indicies, predictions, c
     interesting = np.where(our_labels==expected_labels)[0]
     print("Found {good}/{total} correct labels".format(good=len(interesting), total=len(our_labels)))
     interesting_indexes = permutation(interesting)[:inspect_count]
-    plot_indexes(filenames, interesting_indexes, cat_predictions[interesting_indexes])
+    plot_indexes(filename_root, filenames, interesting_indexes, cat_predictions[interesting_indexes])
 
     # Incorrect labels
     interesting = np.where(our_labels!=expected_labels)[0]
     print("Found {bad}/{total} *incorrect* labels".format(bad=len(interesting), total=len(our_labels)))
-    interesting_indexes = permutation(interesting)[:inspect_count]
-    plot_indexes(filenames, interesting_indexes, cat_predictions[interesting_indexes])
+    if (len(interesting) > 0):
+        interesting_indexes = permutation(interesting)[:inspect_count]
+        plot_indexes(filename_root, filenames, interesting_indexes, cat_predictions[interesting_indexes])
 
-    # The images we most confident were class1, and are actually class1
-    correct_class_n = np.where((our_labels==0) & (our_labels==expected_labels))[0]
-    print("Found %d confident correct class1 labels" % len(correct_class_n))
-    print(correct_class_n)
-    print(our_predictions)
-    print(our_predictions[correct_class_n])
-    most_correct_class_n = np.argsort(our_predictions[correct_class_n])[::-1][:inspect_count]
-    print(most_correct_class_n)
-    print(correct_class_n[most_correct_class_n])
-    print(our_predictions[correct_class_n][most_correct_class_n])
-    #plot_indexes(correct_class_n[most_correct_class_n], our_predictions[correct_class_n][most_correct_class_n])
+        # The images we most confident were class1, and are actually class1
+        correct_class_n = np.where((our_labels==0) & (our_labels==expected_labels))[0]
+        #print("Found %d confident correct class1 labels" % len(correct_class_n))
+        #print(correct_class_n)
+        #print(our_predictions)
+        #print(our_predictions[correct_class_n])
+        most_correct_class_n = np.argsort(our_predictions[correct_class_n])[::-1][:inspect_count]
+        #print(most_correct_class_n)
+        #print(correct_class_n[most_correct_class_n])
+        #print(our_predictions[correct_class_n][most_correct_class_n])
+        plot_indexes(filename_root, correct_class_n[most_correct_class_n], our_predictions[correct_class_n][most_correct_class_n])
 
     # The images we were most confident were class N, but are actually class M
-    incorrect_class_n = np.where((our_labels==0) & (our_labels!=expected_labels))[0]
-    print("Found %d incorrect class " % len(incorrect_class_n))
-    if len(incorrect_class_n):
-        most_incorrect_class_n = np.argsort(our_predictions[incorrect_class_n])[::-1][:inspect_count]
-        plot_indexes(incorrect_class_n[most_incorrect_class_n], our_predictions[incorrect_class_n][most_incorrect_class_n])
+    incorrect_something = np.where((our_labels==0) & (our_labels!=expected_labels))
+    if (len(incorrect_something) > 0):
+        incorrect_class_n = incorrect_something[0]
+        print("Found %d incorrect class_n " % len(incorrect_class_n))
+    # if incorrect_class_n > 0:
+    #     most_incorrect_class_n = np.argsort(our_predictions[incorrect_class_n])[::-1][:inspect_count]
+    #     plot_indexes(filename_root, incorrect_class_n[most_incorrect_class_n], our_predictions[incorrect_class_n][most_incorrect_class_n])
 #
 
    # image_path = os.path.join(config.test, filenames[0])
@@ -223,7 +227,7 @@ filenames = load_array(filenames_array_path)
 expected_labels = load_array(expected_labels_array_path)
 class_indicies = load_array(class_indicies_array_path)
 
-debug_predictions(filenames, expected_labels, class_indicies, predictions, path_config)
+debug_predictions(prediction_root, filenames, expected_labels, class_indicies, predictions, path_config)
 
 #%%
 write_csv(predictions)
