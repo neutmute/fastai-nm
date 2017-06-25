@@ -116,14 +116,14 @@ def get_predictions(path):
 %matplotlib inline
 
 relative_data_path = "sample"
-#relative_data_path = "full"
+relative_data_path = "full"
 path_config = get_config("data\\cats-dogs-redux", relative_data_path)
 predictions_array_path = os.path.join(path_config.results, "predictions.array")
 filenames_array_path = os.path.join(path_config.results, "batches.filenames.array")
 expected_labels_array_path = os.path.join(path_config.results, "batches.expected_labels.array")
 class_indicies_array_path = os.path.join(path_config.results, "batches.class_indicies.array")
 
-prediction_root = path_config.valid
+prediction_root = path_config.test
 
 #%%
 #### PREDIT SECTION
@@ -236,7 +236,8 @@ predictions = load_array(predictions_array_path)
 filenames = load_array(filenames_array_path)
 
 is_dog = predictions[:,1]   # take the dog predictions column vector
-is_dog = is_dog.clip(min = 0.02, max=0.98) #clip for log loss protection
+clip = 0.02
+is_dog = is_dog.clip(min = clip, max=1-clip) #clip for log loss protection
 
 getFileId = lambda f: int(re.search("(\d+)", f).group(0))
 file_ids = np.array([getFileId(f) for f in filenames])
