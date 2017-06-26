@@ -7,7 +7,9 @@ Assumes (has been performed manually)
 Intent:
 * Ensure results folder exists
 * Create sample folder and sub paths (Train, Valid, Test)
-* Create full/Valid folder
+* Create full/valid folder
+* Populate sample folder and sub paths (Train, Valid, Test)
+* Populate full/valid folder
 """
 
 from glob import glob
@@ -52,37 +54,25 @@ def ensure_folder_exists(path):
 #    if flag:
 #        for f in train_set:
 #            shutil.move(f,train_path)
-                
+
 
 def sample_folder(path, percent=0.95):
     """ create sample folder """
     train_path = os.path.join(path, 'train')
-    all_train = glob(os.path.join(train_path,'*.*'))
-    sample_path = os.path.join(path,'sample')
+    all_train = glob(os.path.join(train_path, '*.*'))
+    sample_path = os.path.join(path, 'sample')
     if not os.path.exists(sample_path):
         os.mkdir(sample_path)
-    _,sample_set = get_split_set(all_train,percent)
-    for f in sample_set:
-        shutil.copy(f,sample_path)
+    _, sample_set = get_split_set(all_train, percent)
+    for sample_file in sample_set:
+        shutil.copy(sample_file, sample_path)
 
-def get_split_set(all_train,per):
+def get_split_set(all_train, per):
+    """"Something to do with split sets"""
     shuffle(all_train)
-    n = len(all_train)
-    split_point = int(per*n)
-    return all_train[:split_point],all_train[split_point:]
-
-def create_cats_dogs(path):
-    cats_path = os.path.join(path,'cats')
-    dogs_path = os.path.join(path,'dogs')
-    os.mkdir(cats_path)
-    os.mkdir(dogs_path)
-    cat_files = glob(os.path.join(path,'cat.*'))
-    dog_files = glob(os.path.join(path,'dog.*'))
-
-    for f in cat_files:
-        shutil.move(f, cats_path)
-    for f in dog_files:
-        shutil.move(f, dogs_path)    
+    train_file_count = len(all_train)
+    split_point = int(per * train_file_count)
+    return all_train[:split_point], all_train[split_point:]
 
 def main():
     """Setup our folders"""
@@ -95,6 +85,14 @@ def main():
 
     print "Ensure results folder exists"
     ensure_folder_exists(path_config_sample.results)
+
+    print "Create sample folder and sub paths (Train, Valid, Test)"
+    ensure_folder_exists(path_config_sample.train)
+    ensure_folder_exists(path_config_sample.valid)
+    ensure_folder_exists(path_config_sample.test)
+
+    print "Create full/valid folder"
+    ensure_folder_exists(path_config_full.valid)
 
 #    parent_path = 'data/cats-dogs-redux'
 #    train_zip_path = os.path.join(parent_path,'train.zip')

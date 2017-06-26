@@ -57,7 +57,7 @@ def get_split_set(all_train,per):
     shuffle(all_train)
     n = len(all_train)
     split_point = int(per*n)
-    return all_train[:split_point],all_train[split_point:]
+    return all_train[:split_point], all_train[split_point:]
 
 def create_cats_dogs(path):
     cats_path = os.path.join(path,'cats')
